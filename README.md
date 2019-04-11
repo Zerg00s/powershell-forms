@@ -89,8 +89,10 @@ $location = Get-FormArrayItem -items $locations -key "displayName" -dialogTitle 
 
 
 ### SharePoint Online
+```
 $lists = Get-PnPList
 $list = Get-FormArrayItem $lists -key "Title"
 
 Write-Host You selected Selected list: $list.Title
+```
 ![](readme-images/list.png)
