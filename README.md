@@ -89,6 +89,8 @@ $location = Get-FormArrayItem -items $locations -key "displayName" -dialogTitle 
 
 
 ### SharePoint Online
+Select one list from an array of lists:
+
 ```
 $lists = Get-PnPList
 $list = Get-FormArrayItem $lists -key "Title"
