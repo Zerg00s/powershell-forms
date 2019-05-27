@@ -2,7 +2,7 @@
 Collect user inputs using modal pop-up forms. 
 The forms are generated dynamically using a single line of code. Excellent option if you want to make your PowerShell script more user-friendly.
 
-Use can use powershell-forms with any sorts of arrays or objects. You can ask a user to select a file from an array of files or maybe a SharePoint List item from an array of items. 
+You can use powershell-forms with any sorts of arrays or objects. You can ask a user to select a file from an array of files or maybe a SharePoint List item from an array of items. 
 
 ## Getting started
 
