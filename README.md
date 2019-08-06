@@ -95,6 +95,6 @@ Select one list from an array of lists:
 $lists = Get-PnPList
 $list = Get-FormArrayItem $lists -key "Title"
 
-Write-Host You selected Selected list: $list.Title
+Write-Host You selected list: $list.Title
 ```
 ![](readme-images/list.png)
