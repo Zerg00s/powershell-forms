@@ -17,6 +17,7 @@ You can use powershell-forms with any sorts of arrays or objects. You can ask a 
 | Function | Description |
 | ------ | ------ |
 | Get-FormArrayItem | Select one item from an array of items |
+| Get-FormArrayItems | Select multiple items from an array of items |
 | Get-FormBinaryAnswer | Ask a Yes/No question and get value as a $true or $false |
 | Get-FormStringInput | Ask user to enter a string |
 | Get-FormItemProperties | Ask a user to fill out all properties of an object |
@@ -26,9 +27,18 @@ You can use powershell-forms with any sorts of arrays or objects. You can ask a 
 ### Get-FormArrayItem
 Select one item from an array of items:
 ```
-$selectedItem = Get-FormArrayItem (Get-ChildItem)
+$selectedItem = Get-FormArrayItem (Get-ChildItem) -ControlType RadioButtons
 ```
-![](readme-images/dir.png)
+![](readme-images/autocomplete.gif)
+
+
+
+### Get-FormArrayItems
+Select one item from an array of items:
+```
+$selectedItem = Get-FormArrayItems (Get-ChildItem) 
+```
+![](readme-images/checkboxes.gif)
 
 
 

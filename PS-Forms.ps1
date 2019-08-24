@@ -1,6 +1,15 @@
+enum ControlType {
+    RadioButtons = 1
+    ComboBox = 2
+}
+
 <#
-.DESCRIPTIONkey
+.DESCRIPTION
     Capture user's input by presenting the choices as a group of radio buttons.
+.EXAMPLE
+    PS C:\> Get-FormArrayItem -items $(get-childitem) -key name -dialogTitle "Select file" -ControlType RadioButtons
+.EXAMPLE
+    PS C:\> Get-FormArrayItem -items $(get-childitem) -key name -dialogTitle "Select file" -ControlType ComboBox
 .EXAMPLE
     PS C:\> $subscription = Get-FormArrayItem -items $accounts -key "name" -dialogTitle "Choose subscription"
     Display the list items. In this case it's an array of of Azure subscriptions.
@@ -21,9 +30,10 @@ function Get-FormArrayItem {
         [Parameter(Mandatory = $true)] $items,
         [Parameter(Mandatory = $false)] $key,
         [Parameter(Mandatory = $false)] $dialogTitle,
-        [Parameter()] $defaultValue 
+        [Parameter()] $defaultValue ,
+        [ControlType]
+        [Parameter(Mandatory = $false)] $ControlType = [ControlType]::RadioButtons
     )
-
     [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
     [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") 
 
@@ -39,7 +49,7 @@ function Get-FormArrayItem {
     if($dialogTitle -eq $null){
         $dialogTitle = "Choose one:"
     }
-    
+
     #-----------------------------------------------------------------------
     # Create a group that will contain your radio buttons
     #-----------------------------------------------------------------------
@@ -55,53 +65,100 @@ function Get-FormArrayItem {
     $Panel.size = '600,1'
     $Panel.text = $dialogTitle
 
-    $radioButonY = 10
+    $inputControlY = 10
     $radioButtonHeight = 20
-    $spaceBetweenRadioButtons = $radioButtonHeight + 10
-    $Panel.Height = $spaceBetweenRadioButtons + 20
+    $spaceBetweenControls = $radioButtonHeight + 10
+    $Panel.Height = $spaceBetweenControls + 20
     $MaximumPanelHeight = 290
     $RadioFont = New-Object System.Drawing.Font("Times New Roman", 12)
 
-    foreach ($item in $items) {
+    $OKButton = New-Object System.Windows.Forms.Button
+    
+     
+    if($ControlType -eq [ControlType]::RadioButtons){
         #-----------------------------------------------------------------------
         # Create the collection of radio buttons
         #-----------------------------------------------------------------------
-        $RadioButton = New-Object System.Windows.Forms.RadioButton
-        $RadioButton.Location = "20,$radioButonY"
-        $RadioButton.size = "350,$radioButtonHeight" 
-        $RadioButton.Font = $RadioFont
+        foreach ($item in $items) {
+            $RadioButton = New-Object System.Windows.Forms.RadioButton
+            $RadioButton.Location = "20,$inputControlY"
+            $RadioButton.size = "350,$radioButtonHeight" 
+            $RadioButton.Font = $RadioFont
 
-        $props = Get-Member -InputObject $item -MemberType Property
+            $props = Get-Member -InputObject $item -MemberType Property
         
-        $prop = $props | Where-Object { $_.name -eq $key }
-        $propValue = $item | Select-Object -ExpandProperty $prop.Name
-        $RadioButton.Text = $propValue
-        if ($RadioButton.Text -eq $defaultValue) {
-            $RadioButton.Checked = $true 
-        }
-        else {
-            $RadioButton.Checked = $false 
-        }
-        $Panel.Controls.AddRange($RadioButton)
-        $radioButonY += $spaceBetweenRadioButtons
+            $prop = $props | Where-Object { $_.name -eq $key }
+            $propValue = $item | Select-Object -ExpandProperty $prop.Name
+            $RadioButton.Text = $propValue
+            if ($RadioButton.Text -eq $defaultValue) {
+                $RadioButton.Checked = $true 
+            }
+            else {
+                $RadioButton.Checked = $false 
+            }
+            $Panel.Controls.AddRange($RadioButton)
+            $inputControlY += $spaceBetweenControls
 
-        if ($Panel.Height -lt $MaximumPanelHeight) {
-            $Panel.Height += $spaceBetweenRadioButtons    
-        }else{
-            $Panel.BorderStyle = 1
-            $Panel.VerticalScroll.Enabled = $true;
-            $Panel.VerticalScroll.Visible = $true;
-            $Panel.AutoScroll = $true;
-        }   
-        
+            if ($Panel.Height -lt $MaximumPanelHeight) {
+                $Panel.Height += $spaceBetweenControls    
+            }else{
+                $Panel.BorderStyle = 1
+                $Panel.VerticalScroll.Enabled = $true;
+                $Panel.VerticalScroll.Visible = $true;
+                $Panel.AutoScroll = $true;
+            }
+        }    
+      
+     }
+
+    if($ControlType -eq [ControlType]::ComboBox){
+        #-----------------------------------------------------------------------
+        # Add Combobox with autocomplete
+        #-----------------------------------------------------------------------
+        $ComboBox                       = New-Object system.Windows.Forms.ComboBox
+        $ComboBox.text                  = "comboBox"
+        $ComboBox.width                 = 580
+        $ComboBox.height                = 50
+        $ComboBox.Location              = New-Object System.Drawing.Point(10,20)
+        $ComboBox.Font                  = 'Times New Roman,12'
+
+        ##############   DropDown #################
+
+        $ComboBox.DropDownStyle  = [System.Windows.Forms.ComboBoxStyle]::DropDown;                      
+        foreach($item in $items){
+            $suppress = $ComboBox.Items.add($item)
+        }
+        $ComboBox.SelectedIndex = 1        
+  
+        ##############   AutoComplite #################
+
+        $ComboBox.AutoCompleteSource      ='CustomSource'
+        $ComboBox.AutoCompleteMode        ='SuggestAppend'
+        foreach($item in $items){$ComboBox.AutoCompleteCustomSource.AddRange($item)}
+        $choice = $ComboBox.Text
+
+        ######## If Combobox text is different from list or null ###############
+
+        $ComboBox.add_TextChanged({Combobox})
+        $Panel.Controls.Add($ComboBox)
+        $Panel.Height += $spaceBetweenControls    
+
+        function Combobox{
+            if ($ComboBox.SelectedItem -eq $null){
+                $OKButton.Enabled = $false
+            }else{
+                $OKButton.Enabled = $true
+            }
+        }
     }
+
 
     #-----------------------------------------------------------------------
     # Add an OK button
     #-----------------------------------------------------------------------
     $ActionButtonHeight = 40
     $ActionButtonY = $Panel.size.Height + $Panel.Location.Y + 10
-    $OKButton = New-Object System.Windows.Forms.Button
+    # $OKButton = New-Object System.Windows.Forms.Button
     $OKButton.Location = "130,$ActionButtonY"
     $OKButton.Size = "100,$ActionButtonHeight" 
     $OKButton.Text = 'OK'
@@ -149,8 +206,16 @@ function Get-FormArrayItem {
     # Get the results of the dialog
     #-----------------------------------------------------------------------
     if ($dialogResult -eq "OK") { 
-        $checkedControl = $Panel.Controls | Where-Object { ([System.Windows.Forms.RadioButton]$_).Checked -eq $true }
-        $selectedValue = $checkedControl.Text
+
+        if($ControlType -eq [ControlType]::RadioButtons){
+            $checkedControl = $Panel.Controls | Where-Object { ([System.Windows.Forms.RadioButton]$_).Checked -eq $true }
+            $selectedValue = $checkedControl.Text
+        }
+
+        if($ControlType -eq [ControlType]::ComboBox){
+             $selectedValue = $ComboBox.Text
+        }
+
 
         return $items | Where-Object {                  
             $propValue = $_ | Select-Object -ExpandProperty $prop.Name
@@ -162,6 +227,171 @@ function Get-FormArrayItem {
         throw "Execution was cancelled by the user"
     }
 }
+
+
+<#
+.DESCRIPTION
+    Capture user's input by presenting the choices as a group of radio buttons.
+.EXAMPLE
+    PS C:\> Get-FormArrayItems -items $(get-childitem) -key name -dialogTitle "Select files" 
+.PARAMETER items
+    An array of objects
+.PARAMETER key
+    Name of the property that will serve as a unique key for the radio buttons. This property will also be used to render text beside each radio button.
+.PARAMETER dialogTitle
+    Descriptive Title of the dialog box.
+.OUTPUTS
+    Returns an array item (proper object) that was selected via the form by clicking a radio button.
+#>
+function Get-FormArrayItems {
+    Param(
+        [Parameter(Mandatory = $true)] $items,
+        [Parameter(Mandatory = $false)] $key,
+        [Parameter(Mandatory = $false)] $dialogTitle
+    )
+    [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+    [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") 
+
+    if ($items.Count -eq 0) {
+        Write-Host "'$dialogTitle' dialog did not contain any items. Returning `$null"
+        return $null
+    }
+
+    if($key -eq $null){
+        $key = "Name"
+    }
+
+    if($dialogTitle -eq $null){
+        $dialogTitle = "Choose one:"
+    }
+
+    #-----------------------------------------------------------------------
+    # Create a group that will contain your radio buttons
+    #-----------------------------------------------------------------------
+    $TitleLabel = New-Object System.Windows.Forms.Label
+    $TitleLabel.Location = '40,5'
+    $TitleLabel.Text = $dialogTitle
+    $Font = New-Object System.Drawing.Font("Times New Roman", 13)
+    $TitleLabel.Font = $Font 
+    $TitleLabel.Width = 550
+
+    $Panel = New-Object System.Windows.Forms.Panel
+    $Panel.Location = '40,30'
+    $Panel.size = '600,1'
+    $Panel.text = $dialogTitle
+
+    $inputControlY = 10
+    $radioButtonHeight = 20
+    $spaceBetweenControls = $radioButtonHeight + 10
+    $Panel.Height = $spaceBetweenControls + 20
+    $MaximumPanelHeight = 290
+    $RadioFont = New-Object System.Drawing.Font("Times New Roman", 12)
+
+    $OKButton = New-Object System.Windows.Forms.Button
+    
+     
+    #-----------------------------------------------------------------------
+    # Create the collection of radio buttons
+    #-----------------------------------------------------------------------
+    foreach ($item in $items) {
+        $CheckBox = New-Object System.Windows.Forms.CheckBox
+        $CheckBox.Location = "20,$inputControlY"
+        $CheckBox.size = "350,$radioButtonHeight" 
+        $CheckBox.Font = $RadioFont
+
+        $props = Get-Member -InputObject $item -MemberType Property
+        
+        $prop = $props | Where-Object { $_.name -eq $key }
+        $propValue = $item | Select-Object -ExpandProperty $prop.Name
+        $CheckBox.Text = $propValue
+        if ($CheckBox.Text -eq $defaultValue) {
+            $CheckBox.Checked = $true 
+        }
+        else {
+            $CheckBox.Checked = $false 
+        }
+        $Panel.Controls.AddRange($CheckBox)
+        $inputControlY += $spaceBetweenControls
+
+        if ($Panel.Height -lt $MaximumPanelHeight) {
+            $Panel.Height += $spaceBetweenControls    
+        }else{
+            $Panel.BorderStyle = 1
+            $Panel.VerticalScroll.Enabled = $true;
+            $Panel.VerticalScroll.Visible = $true;
+            $Panel.AutoScroll = $true;
+        }
+    }    
+      
+
+    #-----------------------------------------------------------------------
+    # Add an OK button
+    #-----------------------------------------------------------------------
+    $ActionButtonHeight = 40
+    $ActionButtonY = $Panel.size.Height + $Panel.Location.Y + 10
+    # $OKButton = New-Object System.Windows.Forms.Button
+    $OKButton.Location = "130,$ActionButtonY"
+    $OKButton.Size = "100,$ActionButtonHeight" 
+    $OKButton.Text = 'OK'
+    $OKButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+ 
+    #-----------------------------------------------------------------------
+    #Add a cancel button
+    #-----------------------------------------------------------------------
+    $CancelButton = New-Object System.Windows.Forms.Button
+    $CancelButton.Location = "255,$ActionButtonY"
+    $CancelButton.Size = "100,$ActionButtonHeight"
+    $CancelButton.Text = "Cancel"
+    $CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+
+    $Form = New-Object System.Windows.Forms.Form
+    $Form.width = $Panel.size.Width + 80
+    $Form.height = $OKButton.Location.Y + $OKButton.Height + 60
+    $Form.Text = $dialogTitle
+    $Form.Topmost = $true
+    $Form.StartPosition = "CenterScreen"
+ 
+    #-----------------------------------------------------------------------
+    # Set the font of the text to be used within the form
+    #-----------------------------------------------------------------------
+    $Font = New-Object System.Drawing.Font("Times New Roman", 10)
+    $Form.Font = $Font 
+    
+    $form.Controls.AddRange(@($TitleLabel, $Panel, $OKButton, $CancelButton))
+    
+    #-----------------------------------------------------------------------
+    # Assign the Accept and Cancel options in the form to the corresponding buttons
+    #-----------------------------------------------------------------------
+    $form.AcceptButton = $OKButton
+    $form.CancelButton = $CancelButton
+ 
+    #-----------------------------------------------------------------------
+    # Activate the form
+    #-----------------------------------------------------------------------
+    $form.Add_Shown( { $form.Activate() })
+       
+    $dialogResult = $form.ShowDialog()
+    
+ 
+    #-----------------------------------------------------------------------
+    # Get the results of the dialog
+    #-----------------------------------------------------------------------
+    if ($dialogResult -eq "OK") { 
+
+        $checkedControls = $Panel.Controls | Where-Object { ([System.Windows.Forms.CheckBox]$_).Checked -eq $true }
+        $checkedKeys = $checkedControls | % {$_.Text }     
+        
+         return $items | Where-Object {                  
+             $propValue = $_ | Select-Object -ExpandProperty $prop.Name             
+             $checkedKeys.contains($propValue.ToString())
+         }
+        Write-Host $selectedValue
+    }
+    else {
+        throw "Execution was cancelled by the user"
+    }
+}
+
 
 <#
 .DESCRIPTION
