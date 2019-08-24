@@ -7,7 +7,7 @@ You can use powershell-forms with any sorts of arrays or objects. You can ask a 
 ## Getting started
 
 - Download `PS-Forms.ps1` file
-- Load the powershell-forms functions by running `. .\PS-Forms.ps1`
+- Load the PowerShell-forms functions by running `. .\PS-Forms.ps1`
 - Try out your first dialog by running `Get-FormStringInput "Enter new file name"`
 
 
@@ -34,7 +34,7 @@ $selectedItem = Get-FormArrayItem (Get-ChildItem) -ControlType RadioButtons
 
 
 ### Get-FormArrayItems
-Select one item from an array of items:
+Select several items from an array of items:
 ```
 $selectedItem = Get-FormArrayItems (Get-ChildItem) 
 ```
