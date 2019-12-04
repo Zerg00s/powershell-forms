@@ -85,7 +85,7 @@ function Get-FormArrayItem {
             $RadioButton.size = "350,$radioButtonHeight" 
             $RadioButton.Font = $RadioFont
 
-            $props = Get-Member -InputObject $item -MemberType Property
+            $props = Get-Member -InputObject $item -MemberType NoteProperty
         
             $prop = $props | Where-Object { $_.name -eq $key }
             $propValue = $item | Select-Object -ExpandProperty $prop.Name
