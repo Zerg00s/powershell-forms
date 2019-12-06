@@ -82,7 +82,7 @@ function Get-FormArrayItem {
         foreach ($item in $items) {
             $RadioButton = New-Object System.Windows.Forms.RadioButton
             $RadioButton.Location = "20,$inputControlY"
-            $RadioButton.size = "350,$radioButtonHeight" 
+            $RadioButton.size = "550,$radioButtonHeight" 
             $RadioButton.Font = $RadioFont
 
             $props = Get-Member -InputObject $item -MemberType NoteProperty
