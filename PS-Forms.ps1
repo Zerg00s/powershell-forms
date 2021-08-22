@@ -538,7 +538,8 @@ function Get-FormItemProperties {
         [Parameter(Mandatory = $true)] $item,
         [Parameter(Mandatory = $false)] $dialogTitle,
         [Parameter(Mandatory = $false)] $propertiesOrder,
-        [Parameter(Mandatory = $false)] $base64FormIcon
+        [Parameter(Mandatory = $false)] $base64FormIcon,
+        [Parameter(Mandatory = $false)] $note
     )
     
     if ($item -eq $null) {
@@ -617,6 +618,22 @@ function Get-FormItemProperties {
         $iconImage = [System.Drawing.Image]::FromStream($stream, $true)
         $Form.Icon = [System.Drawing.Icon]::FromHandle((New-Object System.Drawing.Bitmap -Argument $stream).GetHIcon())
     }
+
+    #-----------------------------------------------------------------------
+    # Add a note
+    #-----------------------------------------------------------------------
+    if ($note){
+        $NoteLabel = New-Object System.Windows.Forms.Label
+        $NoteLabel.Location = "20,$textboxY"
+        $NoteLabel.size = "450,50" 
+        $NoteLabel.MaximumSize  = "500,50" 
+        $NoteLabel.Font = 'Times New Roman,13'
+        $NoteLabel.Text = $note
+        $NoteLabel.AutoSize = $true
+        $textboxY += $spaceBetweenTextboxes/2
+        $Panel.Controls.AddRange(@($NoteLabel))
+    }
+
     
     #-----------------------------------------------------------------------
     # Add an OK button
@@ -648,6 +665,7 @@ function Get-FormItemProperties {
     $Form.Font = $Font
         
     $form.Controls.AddRange(@($Panel))
+    
     $Panel.Controls.AddRange(@($OKButton, $CancelButton))
     
     #-----------------------------------------------------------------------
