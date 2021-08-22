@@ -536,9 +536,15 @@ function Get-FormStringInput {
 function Get-FormItemProperties {
     Param(
         [Parameter(Mandatory = $true)] $item,
-        [Parameter(Mandatory = $false)] $dialogTitle
+        [Parameter(Mandatory = $false)] $dialogTitle,
+        [Parameter(Mandatory = $false)] $propertiesOrder,
+        [Parameter(Mandatory = $false)] $base64FormIcon
     )
-
+    
+    if ($item -eq $null) {
+        exit
+    }
+    
     #-----------------------------------------------------------------------
     # Convert the object to hashtable
     #-----------------------------------------------------------------------
@@ -547,61 +553,80 @@ function Get-FormItemProperties {
         $item.psobject.properties | ForEach-Object { $hashTable[$_.Name] = $_.Value }
         $item = $hashTable
     }
-
+    
     [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
     [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") 
-
-    if($dialogTitle -eq $null){
+    
+    if ($dialogTitle -eq $null) {
         $dialogTitle = "Fill out values:"
     }
-
+    
     #-----------------------------------------------------------------------
     # Create a group that will contain textboxes
     #-----------------------------------------------------------------------
-    $GroupBox = New-Object System.Windows.Forms.GroupBox
-    $GroupBox.Location = '40,30'
-    $GroupBox.size = '600,1'
-    $GroupBox.text = $dialogTitle
-    
+    $Panel = New-Object System.Windows.Forms.Panel
+    $Panel.DockPadding.Bottom = 40
+    $Panel.Dock = [System.Windows.Forms.DockStyle]::Fill
+        
     $Font = New-Object System.Drawing.Font("Times New Roman", 12)
-
+    
     $textboxY = 40
     $textboxHeight = 20
     $spaceBetweenTextboxes = $textboxHeight + 22
-    $GroupBox.Height += $spaceBetweenTextboxes + 20
-
+    
     $textboxes = @()
-    foreach ($key in $item.Keys) {
-
+    foreach ($key in $propertiesOrder) {
+    
         $Label = New-Object System.Windows.Forms.Label
         $Label.Location = "20,$textboxY"
         $Label.size = "450,$textboxHeight" 
         $Label.Text = $key
-
+    
         $textboxY += $spaceBetweenTextboxes / 2
-
+    
         $TextBox = New-Object System.Windows.Forms.TextBox
         $TextBox.Location = "20,$textboxY"
-        $TextBox.size = "550,$textboxHeight"  
-
+        $TextBox.size = "450,$textboxHeight"  
+            
         $TextBox.Text = $item[$key]
-
-        $GroupBox.Controls.AddRange(@($Label, $TextBox))
+        $Panel.Controls.AddRange(@($Label, $TextBox))
         $textboxes += $TextBox
         $textboxY += $spaceBetweenTextboxes
-
         $TextBox.Font = $Font
-        $GroupBox.Height += $spaceBetweenTextboxes * 1.5
     }
-
+    
+    $Panel.BorderStyle = 1
+    $Panel.VerticalScroll.Enabled = $true;
+    $Panel.VerticalScroll.Visible = $true;
+    $Panel.AutoScroll = $true;
+    
+    
+    $Form = New-Object System.Windows.Forms.Form
+    $Form.Height = 380
+    $Form.Width = 530
+    $Form.Text = $dialogTitle
+    $Form.Topmost = $true
+    $Form.StartPosition = "CenterScreen"
+    
+    # Base 64 encoded image
+    if ($base64FormIcon) {
+        $iconBase64 = $base64FormIcon 
+        $iconBytes = [Convert]::FromBase64String($iconBase64)
+        $stream = New-Object IO.MemoryStream($iconBytes, 0, $iconBytes.Length)
+        $stream.Write($iconBytes, 0, $iconBytes.Length);
+        $iconImage = [System.Drawing.Image]::FromStream($stream, $true)
+        $Form.Icon = [System.Drawing.Icon]::FromHandle((New-Object System.Drawing.Bitmap -Argument $stream).GetHIcon())
+    }
+    
     #-----------------------------------------------------------------------
     # Add an OK button
     #-----------------------------------------------------------------------
     $ActionButtonHeight = 40
     $ActionButtonY = $GroupBox.size.Height + $GroupBox.Location.Y + 10
     $OKButton = New-Object System.Windows.Forms.Button
-    $OKButton.Location = "130,$ActionButtonY"
     $OKButton.Size = "100,$ActionButtonHeight" 
+    $textboxY+= 30
+    $OKButton.Location = "20,$textboxY"
     $OKButton.Text = 'OK'
     $OKButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
  
@@ -609,42 +634,38 @@ function Get-FormItemProperties {
     # Add an Cancel button
     #-----------------------------------------------------------------------
     $CancelButton = New-Object System.Windows.Forms.Button
-    $CancelButton.Location = "255,$ActionButtonY"
+    $CancelButton.Location = "370,$textboxY"
     $CancelButton.Size = "100,$ActionButtonHeight"
     $CancelButton.Text = "Cancel"
     $CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
 
-    $Form = New-Object System.Windows.Forms.Form
-    $Form.width = $GroupBox.size.Width + 100
-    $Form.height = $OKButton.Location.Y + $OKButton.Height + 60
-    $Form.Text = $dialogTitle
-    $Form.Topmost = $true
-    $Form.StartPosition = "CenterScreen"
- 
+
+     
     #-----------------------------------------------------------------------
     # Set the font of the text to be used within the form
     #-----------------------------------------------------------------------
     $Font = New-Object System.Drawing.Font("Times New Roman", 10)
     $Form.Font = $Font
-    
-    $form.Controls.AddRange(@($GroupBox, $OKButton, $CancelButton))
+        
+    $form.Controls.AddRange(@($Panel))
+    $Panel.Controls.AddRange(@($OKButton, $CancelButton))
     
     #-----------------------------------------------------------------------
     # Assign the Accept and Cancel options in the form to the corresponding buttons
     #-----------------------------------------------------------------------
     $form.AcceptButton = $OKButton
     $form.CancelButton = $CancelButton
- 
+
+        
     #-----------------------------------------------------------------------
     # Activate the form
     #-----------------------------------------------------------------------
-    $form.Add_Shown( { $form.Activate() })    
-    
+    $form.Add_Shown( { $form.Activate() })   
     #-----------------------------------------------------------------------
     # Get the results from the button click
     #-----------------------------------------------------------------------
-    $dialogResult = $form.ShowDialog()
- 
+    $dialogResult = $form.ShowDialog() 
+        
     #-----------------------------------------------------------------------
     # If the OK button is selected
     #-----------------------------------------------------------------------
@@ -652,7 +673,7 @@ function Get-FormItemProperties {
 
         $hashTable = @{ }
         $i = 0;     
-        foreach ($key in $item.Keys) {
+        foreach ($key in $propertiesOrder) {
             $hashTable[$key] = $textboxes[$i].Text
             $i++;
         }
@@ -661,4 +682,5 @@ function Get-FormItemProperties {
     else {
         throw "Execution was cancelled by the user"
     }
+
 }
