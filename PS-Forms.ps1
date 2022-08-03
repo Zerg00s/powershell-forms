@@ -576,6 +576,11 @@ function Get-FormItemProperties {
     $spaceBetweenTextboxes = $textboxHeight + 22
     
     $textboxes = @()
+    
+    if ($null -eq $propertiesOrder) {
+        $propertiesOrder = $item.Keys
+    }
+    
     foreach ($key in $propertiesOrder) {
     
         $Label = New-Object System.Windows.Forms.Label
